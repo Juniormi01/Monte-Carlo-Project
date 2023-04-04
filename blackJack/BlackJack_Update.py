@@ -17,20 +17,24 @@ def hand_value(hand):
     return sum(hand)
 
 # Policy 1: If your hand ≥ 17, stick. Else hit.
-def policy1(hand, d_hand):
+def policy1(hand, d_card):
     return hand_value(hand) < 17
 
 # Policy 2: If your hand ≥ 17 and is hard, stick. Else hit unless your hand = 21
-def policy2(hand, d_hand):
+def policy2(hand, d_card):
     return (hand_value(hand) < 17 and not soft(hand)) or hand_value(hand) == 21
 
 # Policy 3: Always stick
-def policy3(hand, d_hand):
+def policy3(hand, d_card):
     return False
 
 # Policy 5: Basic hand chart
-def policy5(hand, d_hand):
-    pass
+def policy5(hand, d_card):
+    if hand_value(hand) >= 17:
+        return False
+    if hand_value(hand) < 17 and hand_value(hand) > 11 and  d_card < 7:
+        return False
+    return True
 
 # Create a single deck of cards
 def create_single_deck():
@@ -60,7 +64,7 @@ def play_game(policy, infinite_deck=False, single_deck=False):
     # It may make sense to add 1.5 to the player win column to reflect this.
 
     # Player turn
-    while policy(hand, d_hand):
+    while policy(hand, d_hand[0]):
         hand.append(draw_card())
 
     # Dealer turn
@@ -99,7 +103,8 @@ def run_monte_carlo(policy, infinite_deck=False, single_deck=False, num_simulati
     return dealer_wins, player_wins, draws
 
 if __name__ == "__main__":
-    policies = [policy1, policy2, policy3]
+    policies = [policy1, policy2, policy3, policy5]
+    # policies = [policy5]
     deck_types = [{"infinite_deck": True, "single_deck": False},
                   {"infinite_deck": False, "single_deck": True}]
 

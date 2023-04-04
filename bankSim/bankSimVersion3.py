@@ -164,10 +164,13 @@ def bankSimulation():
 
         stanCustomer = stanLine.queue[0]
         teller = copy.copy(tellerLine.queue[0])
+        while (teller.type == 'p')
+            tellerLine.pop()
 
         advanceTellerTime(teller, stanCustomer)
         if tellerLine.empty():
             break
+
         else:
             teller = copy.copy(tellerLine.queue[0])
 

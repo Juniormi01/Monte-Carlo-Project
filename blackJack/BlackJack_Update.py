@@ -16,6 +16,10 @@ def hand_value(hand):
         return sum(hand) + 10
     return sum(hand)
 
+# Calculate the soft value of a hand
+def soft_hand_value(hand):
+    return sum(hand)
+
 # Policy 1: If your hand ≥ 17, stick. Else hit.
 def policy1(hand, d_card):
     return hand_value(hand) < 17
@@ -28,8 +32,29 @@ def policy2(hand, d_card):
 def policy3(hand, d_card):
     return False
 
-# Policy 5: Basic hand chart
+# Policy 4: Basic hand chart (Does not include logic for soft hands)
+def policy4(hand, d_card):
+    if hand_value(hand) >= 17:
+        return False
+    if hand_value(hand) < 17 and hand_value(hand) > 11 and  d_card < 7:
+        return False
+    return True
+
+# Policy 5: Basic hand chart (Includes logic for soft hands)
 def policy5(hand, d_card):
+
+    # Soft hand
+    if soft(hand):
+        if soft_hand_value(hand) < 8:
+            return True
+        elif soft_hand_value(hand) > 8:
+            return False
+        elif soft_hand_value(hand) == 8 and d_card <= 8:
+            return False
+        elif soft_hand_value(hand) == 8 and d_card > 8:
+            return True
+
+    # Hard hand
     if hand_value(hand) >= 17:
         return False
     if hand_value(hand) < 17 and hand_value(hand) > 11 and  d_card < 7:
@@ -57,11 +82,9 @@ def play_game(policy, infinite_deck=False, single_deck=False):
     hand = [draw_card(), draw_card()]
     d_hand = [draw_card(), draw_card()]
 
-    # ------------------------------------------------------------------------------
-    # IMPORTANT: If the players hand is 21 at this point, they automatically win.
-    # This is called black jack and is normally paid out 3:2 ratio. 
-    # For example: If you bet 20 dollars you win 30 dollars. 
-    # It may make sense to add 1.5 to the player win column to reflect this.
+    # Player is dealt Blackjack
+    if hand_value(hand) == 21:
+        return 1.5
 
     # Player turn
     while policy(hand, d_hand[0]):
@@ -103,8 +126,7 @@ def run_monte_carlo(policy, infinite_deck=False, single_deck=False, num_simulati
     return dealer_wins, player_wins, draws
 
 if __name__ == "__main__":
-    policies = [policy1, policy2, policy3, policy5]
-    # policies = [policy5]
+    policies = [policy1, policy2, policy3, policy4, policy5]
     deck_types = [{"infinite_deck": True, "single_deck": False},
                   {"infinite_deck": False, "single_deck": True}]
 

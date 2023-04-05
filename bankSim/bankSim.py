@@ -1,4 +1,4 @@
-# bankSimVersion3.py
+# bankSim.py
 # Bank-Queue-Simulation
 # CSCI 154
 

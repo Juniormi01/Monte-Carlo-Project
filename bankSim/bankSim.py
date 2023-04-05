@@ -12,7 +12,6 @@ from queue import PriorityQueue
 import heapq
 import copy
 
-
 class Customer:
     def __init__(self, time, work):
         self.time = time
@@ -66,20 +65,24 @@ class Teller:
 
 
 # Global Variables
-priLineWorkLimit = 10           # work limit for priority line
 
-stanCustomerCount = 5           # Total number of standard customers.
+# Maximum amount of work a priority customer can have
+priLineWorkLimit = 10           
+
+# Total number of customers.
+stanCustomerCount = 5           
+priCustomerCount = 5  
+
 # Total number of standard customers that were helped by tellers.
 stanCustomerServed = 0
-# Stores total wait time for all standard customers.
-stanCustomerWait = 0
-
-priCustomerCount = 5    # Total number of priority customers.
-# Total number of priority customers that were helped by tellers.
 priCustomerServed = 0
-priCustomerWait = 0     # Stores total wait time for all priority customers.
 
-closingTime = 3                 # Latest time customers will be helped.
+# Total wait time of all customers.
+stanCustomerWait = 0
+priCustomerWait = 0    
+
+# Tellers will not serve customers after closing time.
+closingTime = 10                
 
 stanLine = PriorityQueue()      # Stores all standard customers
 priLine = PriorityQueue()       # Stores all priority customers
@@ -94,12 +97,15 @@ priLine.put(Customer(1, 10))
 priLine.put(Customer(1, 10))
 priLine.put(Customer(2, 10))
 priLine.put(Customer(2, 10))
+priLine.put(Customer(2, 10))
+priLine.put(Customer(2, 10))
+priLine.put(Customer(2, 10))
 
 stanLine.put(Customer(1, 15))
 stanLine.put(Customer(1, 15))
 stanLine.put(Customer(1, 15))
-stanLine.put(Customer(3, 15))
-stanLine.put(Customer(3, 15))
+# stanLine.put(Customer(3, 15))
+# stanLine.put(Customer(3, 15))
 
 # Initialize Tellers
 workRate = 10
@@ -109,116 +115,109 @@ tellerLine.put(Teller(0, workRate, 's'))
 
 
 def bankSimulation():
+
     global closingTime
     global priCustomerServed
-    global priCustomerWait
     global stanCustomerServed
+    global priCustomerWait
     global stanCustomerWait
 
-    # Condition 1: Priority line has customers. Standard line has customers.
-    while not priLine.empty() and not stanLine.empty() and not tellerLine.empty():
+    teller = copy.copy(tellerLine.queue[0])
+
+    # Condition 1: Both priority line and standard line has customers.
+    while not priLine.empty() and not stanLine.empty() and teller.time <= closingTime:
 
         stanCustomer = stanLine.queue[0]
         priCustomer = priLine.queue[0]
-        teller = copy.copy(tellerLine.queue[0])
-
+        
         if stanCustomer.time < priCustomer.time:
-            advanceTellerTime(teller, stanCustomer)
+            teller = advanceTellerTime(teller, stanCustomer)
         else:
-            advanceTellerTime(teller, priCustomer)
+            teller = advanceTellerTime(teller, priCustomer)
 
-        if tellerLine.empty():
-            break
-        else:
-            teller = copy.copy(tellerLine.queue[0])
-
-        # Teller is open when customer(s) arrives.
-        if (teller.time <= priCustomer.time and teller.time <= stanCustomer.time):
-            if (priCustomer.time <= stanCustomer.time):
-                serveCustomer(teller, priCustomer)
+        # Serve priority customer.
+        if teller.type == 'p':
+            teller = serveCustomer(teller, priCustomer)
+        # Serve standard customer if they have been waiting in line.
+        elif teller.time >= stanCustomer.time:
+            teller = serveCustomer(teller, stanCustomer)
+        # First customer to arrive is served.
+        else:   
+            if stanCustomer.time < priCustomer.time:
+                teller = serveCustomer(teller, stanCustomer)
             else:
-                serveCustomer(teller, stanCustomer)
-
-        else:   # Both customers are waiting in line
-            if teller.type == 's':
-                serveCustomer(teller, stanCustomer)
-            else:
-                serveCustomer(teller, priCustomer)
+                teller = serveCustomer(teller, priCustomer)
 
     # Condition 2: Only priority line has customers.
-    while not priLine.empty() and stanLine.empty() and not tellerLine.empty():
+    while not priLine.empty() and stanLine.empty() and teller.time <= closingTime:
 
         priCustomer = priLine.queue[0]
-        teller = copy.copy(tellerLine.queue[0])
-
-        advanceTellerTime(teller, priCustomer)
-        if tellerLine.empty():
-            break
-        else:
-            teller = copy.copy(tellerLine.queue[0])
-        # Note... MOVING THE ABOVE TELLER STATEMENT INTO advanceTellerTime changes the run time... figure out why
-        serveCustomer(teller, priCustomer)
+        teller = advanceTellerTime(teller, priCustomer)
+        teller = serveCustomer(teller, priCustomer)
 
     # Condition 3: Only standard line has customers.
-    while priLine.empty() and not stanLine.empty() and not tellerLine.empty():
+    while priLine.empty() and not stanLine.empty() and teller.time <= closingTime:
 
-        stanCustomer = stanLine.queue[0]
-        teller = copy.copy(tellerLine.queue[0])
-        while (teller.type == 'p')
-            tellerLine.pop()
-
-        advanceTellerTime(teller, stanCustomer)
-        if tellerLine.empty():
-            break
-
-        else:
+        # Remove priority tellers from front of queue.
+        while (teller.type == 'p'):
+            tellerLine.get()
             teller = copy.copy(tellerLine.queue[0])
 
-        serveCustomer(teller, stanCustomer)
+        stanCustomer = stanLine.queue[0]
+        teller = advanceTellerTime(teller, stanCustomer)
+        teller = serveCustomer(teller, stanCustomer)
 
-    # Add wait time of unserved priority customers.
+    # Unserved priority customer wait time.
     while not priLine.empty():
         priCustomer = priLine.get()
         priCustomerWait += (closingTime - priCustomer.time)
 
-    # Add wait time of unserved standard customers.
+    # Unserved standard customer wait time.
     while not stanLine.empty():
         stanCustomer = stanLine.get()
         stanCustomerWait += (closingTime - stanCustomer.time)
 
 
 # If the teller is waiting for a customer to arrive, advance teller's time to the customer's time.
+# Returns the next available teller.
 def advanceTellerTime(teller, customer):
-    while ((not tellerLine.empty()) and (teller.time < customer.time)):
+    while ((teller.time <= closingTime) and (teller.time < customer.time)):
         tellerLine.get()
-
         teller.time = customer.time
-        if teller.time < closingTime:
-            tellerLine.put(teller)
+        tellerLine.put(teller)
+        
+        teller = copy.copy(tellerLine.queue[0])
 
+    return copy.copy(tellerLine.queue[0])
 
+# Remove customer form the queue and calculate the wait time.
+# Return the next available teller.
 def serveCustomer(teller, customer):
     global priCustomerServed
     global priCustomerWait
     global stanCustomerServed
     global stanCustomerWait
 
-    # Priority Customer
+    # Past closing.
+    if (teller.time > closingTime):
+        return copy.copy(tellerLine.queue[0])
+
+    # Priority customer
     if (customer.work <= priLineWorkLimit):
         priLine.get()
         priCustomerServed += 1
         priCustomerWait += (teller.time-customer.time)
-
-    else:  # Standard Customer
+    else:  # Standard customer
         stanLine.get()
         stanCustomerServed += 1
         stanCustomerWait += (teller.time - customer.time)
 
-    # Teller
+    # Advance Teller
     tellerLine.get()
     teller.time += (customer.work / teller.workRate)
-    if teller.time < closingTime:
-        tellerLine.put(teller)
+    tellerLine.put(teller)
+
+    return copy.copy(tellerLine.queue[0])
 
 
 def printMetrics():
@@ -233,6 +232,3 @@ def printMetrics():
 
 bankSimulation()
 printMetrics()
-
-
-# standard line should not be able to use priority line

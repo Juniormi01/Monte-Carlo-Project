@@ -105,12 +105,17 @@ def initTellers(priTellers, stanTellers, workRate):
     for i in range(stanTellers):
         stanTellerLine.put(Teller(0, workRate, 's'))
 
-def bankSimulation():
+def bankSimulation(numPriTellers, numStanTellers, tellerWorkRate, numCustomers, priLineLimit):
+
     global priCustomerServed
     global stanCustomerServed
     global priCustomerWait
     global stanCustomerWait
     global closingTime
+
+    # Initialize Tellers
+    initTellers(numPriTellers, numStanTellers, tellerWorkRate)
+    initCustomers(numCustomers, priLineLimit)
 
     priTeller = priTellerLine.queue[0]
     stanTeller = stanTellerLine.queue[0]
@@ -168,7 +173,7 @@ def serveCustomer(teller, customer, line):
     return copy.copy(line.queue[0])
 
 
-def printMetrics():
+def printMetrics(sims):
     print("Standard Customers Count:  ", stanCustomerCount)
     print("Standard Customers Served: ", stanCustomerServed)
     print("Standard Customers Wait:   ", stanCustomerWait, "\n")
@@ -177,19 +182,31 @@ def printMetrics():
     print("Priority Customers Served: ", priCustomerServed)
     print("Priority Customers Wait:   ", priCustomerWait)
 
+
 def main():
-    numPriTellers = 2
-    numStanTellers = 8
-    tellerWorkRate = 10
 
-    numCustomers = 160
-    priLineLimit = 4.7      # Customer work limit to be placed in the priority line.
+    sims = 1
+    for i in range(sims):
+        # bankSimulation(numPriTellers, numStanTellers, tellerWorkRate, numCustomers, priLineLimit)
 
-    for i in range(1):
-        initTellers(numPriTellers, numStanTellers, tellerWorkRate)
-        initCustomers(numCustomers, priLineLimit)
-        bankSimulation()
-    
-    printMetrics()
+        # 1 line, 9 tellers.
+        bankSimulation(1, 9, 10, 160, 0)
+        printMetrics(sims)
+        
+        # 1 line, 10 tellers.
+        bankSimulation(1, 10, 10, 160, 0)
+        printMetrics(sims)
 
+        # 1 line, 11 tellers.
+        bankSimulation(1, 10, 10, 160, 0)
+        printMetrics(sims)
+
+        # 2 lines, 1 priority teller, 9 standard tellers.
+        bankSimulation(1, 9, 10, 160, 5)
+        printMetrics(sims)
+
+        # 2 lines, 2 priority teller, 8 standard tellers.
+        bankSimulation(2, 8, 10, 160, 5)
+        printMetrics(sims)
+   
 main()

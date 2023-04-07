@@ -84,7 +84,7 @@ def play_game(policy, infinite_deck=False, single_deck=False):
 
     # Player is dealt Blackjack
     if hand_value(hand) == 21:
-        return 1.5
+        return 1
 
     # Player turn
     while policy(hand, d_hand[0]):

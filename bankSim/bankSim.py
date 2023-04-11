@@ -13,6 +13,7 @@ import heapq
 import copy
 import random
 
+
 class Customer:
     def __init__(self, time, work, type):
         self.time = time        # Arrival time.
@@ -66,44 +67,93 @@ class Teller:
         return self.time < other.time
 
 
-# Queues           
+# Queues
 stanLine = PriorityQueue()          # Stores all standard customers
 priLine = PriorityQueue()           # Stores all priority customers
 priTellerLine = PriorityQueue()     # Stores all tellers
 stanTellerLine = PriorityQueue()    # Stores all tellers
 
 # Global variables.
-priCustomerCount = 0        
+priCustomerCount = 0
 priCustomerServed = 0
 priCustomerWait = 0
 
 stanCustomerServed = 0
 stanCustomerWait = 0
-stanCustomerCount = 0       
+stanCustomerCount = 0
 
 closingTime = 8         # Tellers will not help customers after closing time.
 
+# Truncated gaussian function
+
+
+def trunc_gauss(mu, sigma, bottom, top):
+    a = random.gauss(mu, sigma)
+    while (bottom <= a <= top) == False:
+        a = random.gauss(mu, sigma)
+    return a
+
+# Print The List of Customers
+
+
+def printCustomers():
+    for i in range(priLine.qsize()):
+        print(i, priLine[i].work)
+    for i in range(stanLine.qsize()):
+        print(i, stanLine[i].work)
+
 # Initialize Customers
-# NOTE customers need truncation [5,15]!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
 def initCustomers(numCustomers, priLineLimit):
-    global priCustomerCount 
-    global stanCustomerCount 
+    global priCustomerCount
+    global stanCustomerCount
+
+    # Clear priority line.
+    while not priLine.empty():
+        try:
+            priLine.get(False)
+        except:
+            continue
+        priLine.task_done()
+
+    # Clear standard line.
+    while not stanLine.empty():
+        try:
+            stanLine.get(False)
+        except:
+            continue
+        stanLine.task_done()
 
     for i in range(numCustomers):
-        work = random.gauss(5, 0.5)
-        time = random.uniform(0,8)
+        work = trunc_gauss(5, 0.5, 5, 15)
+        time = random.uniform(0, 8)
+
         if work <= priLineLimit:
             priLine.put(Customer(time, work, 'p'))
-            priCustomerCount +=1
+            priCustomerCount += 1
         else:
             stanLine.put(Customer(time, work, 's'))
-            stanCustomerCount +=1
+            stanCustomerCount += 1
+
+# Initialize Tellers
+
 
 def initTellers(priTellers, stanTellers, workRate):
+
+    # Clear priority teller line.
+    while not priTellerLine.empty():
+        try:
+            priTellerLine.get(False)
+        except:
+            continue
+        priTellerLine.task_done()
+
     for i in range(priTellers):
         priTellerLine.put(Teller(0, workRate, 'p'))
     for i in range(stanTellers):
         stanTellerLine.put(Teller(0, workRate, 's'))
+
 
 def bankSimulation(numPriTellers, numStanTellers, tellerWorkRate, numCustomers, priLineLimit):
 
@@ -112,6 +162,11 @@ def bankSimulation(numPriTellers, numStanTellers, tellerWorkRate, numCustomers, 
     global priCustomerWait
     global stanCustomerWait
     global closingTime
+
+    priCustomerServed = 0
+    stanCustomerServed = 0
+    priCustomerWait = 0
+    stanCustomerWait = 0
 
     # Initialize Tellers
     initTellers(numPriTellers, numStanTellers, tellerWorkRate)
@@ -139,14 +194,16 @@ def bankSimulation(numPriTellers, numStanTellers, tellerWorkRate, numCustomers, 
     while not stanLine.empty():
         stanCustomer = stanLine.get()
         stanCustomerWait += (closingTime - max(stanCustomer.time, closingTime))
- 
+
 # Serve next customer. Return next teller.
+
+
 def serveCustomer(teller, customer, line):
     global priCustomerServed
     global priCustomerWait
     global stanCustomerServed
-    global stanCustomerWait 
-    
+    global stanCustomerWait
+
     # Teller is waiting for a customer.
     if (teller.time < customer.time):
         teller.time = customer.time
@@ -174,39 +231,57 @@ def serveCustomer(teller, customer, line):
 
 
 def printMetrics(sims):
-    print("Standard Customers Count:  ", stanCustomerCount)
-    print("Standard Customers Served: ", stanCustomerServed)
-    print("Standard Customers Wait:   ", stanCustomerWait, "\n")
+    print("\tStandard Customers Count:  ", stanCustomerCount/sims)
+    print("\tStandard Customers Served: ", stanCustomerServed/sims)
+    print("\tStandard Customers Wait:   ", stanCustomerWait/sims, "\n")
 
-    print("Priority Customers Count:  ", priCustomerCount)
-    print("Priority Customers Served: ", priCustomerServed)
-    print("Priority Customers Wait:   ", priCustomerWait)
+    if priCustomerCount > 0:
+        print("\tPriority Customers Count:  ", priCustomerCount/sims)
+        print("\tPriority Customers Served: ", priCustomerServed/sims)
+        print("\tPriority Customers Wait:   ", priCustomerWait/sims, "\n")
 
 
 def main():
 
-    sims = 1
+    sims = 2
     for i in range(sims):
         # bankSimulation(numPriTellers, numStanTellers, tellerWorkRate, numCustomers, priLineLimit)
 
+        # problem!!!!!!!!!! Bank sim cannot be inside while loop like this!!!!
+        print("\nEach scenario is ran", sims, "time(s). The following metrics are the avearage of all simulations\n")
+
         # 1 line, 9 tellers.
+        print("1 line, 9 tellers.\n")
         bankSimulation(1, 9, 10, 160, 0)
         printMetrics(sims)
-        
+
         # 1 line, 10 tellers.
+        print("1 line, 10 tellers.\n")
         bankSimulation(1, 10, 10, 160, 0)
         printMetrics(sims)
 
         # 1 line, 11 tellers.
+        print("1 line, 11 tellers.\n")
         bankSimulation(1, 10, 10, 160, 0)
         printMetrics(sims)
 
         # 2 lines, 1 priority teller, 9 standard tellers.
-        bankSimulation(1, 9, 10, 160, 5)
+        print("2 lines, 1 priority teller, 9 standard tellers.\n")
+        bankSimulation(1, 9, 10, 160, 5.2)
         printMetrics(sims)
 
         # 2 lines, 2 priority teller, 8 standard tellers.
-        bankSimulation(2, 8, 10, 160, 5)
+        print("2 lines, 2 priority tellers, 8 standard tellers\n")
+        bankSimulation(2, 8, 10, 160, 5.2)
         printMetrics(sims)
-   
+
+        printCustomers()
+
+
 main()
+
+
+
+# reference
+# https://stackoverflow.com/questions/16471763/generating-numbers-with-gaussian-function-in-a-range-using-python
+# https://stackoverflow.com/questions/38560760/python-clear-items-from-priorityqueue

@@ -157,7 +157,7 @@ def initCustomers(numCustomers, priLineLimit):
 
     # Add customer to priority or standard line.
     for i in range(numCustomers):
-        work = trunc_gauss(5, 0.5, 5, 15)
+        work = trunc_gauss(5, 2.5, 1, 15)
         time = random.uniform(0, 8)
 
         if work <= priLineLimit:
@@ -263,15 +263,15 @@ def serveCustomer(teller, customer, line):
 def printMetrics(simulations):
     print("\tStandard Customers Count:  ", stanCustomerCount/simulations)
     print("\tStandard Customers Served: ", stanCustomerServed/simulations)
-    print("\tStandard Customers Wait:   ", stanCustomerWait/stanCustomerCount, "\n")
+    print("\tStandard Customers Wait:   ", round(stanCustomerWait/stanCustomerCount, 4), "\n")
 
     if priCustomerCount > 0:
         print("\tPriority Customers Count:  ", priCustomerCount/simulations)
         print("\tPriority Customers Served: ", priCustomerServed/simulations)
-        print("\tPriority Customers Wait:   ", priCustomerWait/priCustomerCount, "\n")
+        print("\tPriority Customers Wait:   ", round(priCustomerWait/priCustomerCount,4), "\n")
 
-    print("\tTotal Customer Wait:        ", (priCustomerWait + stanCustomerWait)/(priCustomerCount + stanCustomerCount))
-    print("\tTotal Customers NOT Served: ", (priCustomerCount + stanCustomerCount-priCustomerServed - stanCustomerServed)/simulations, "\n")
+    print("\tTotal Customer Wait:       ", round((priCustomerWait + stanCustomerWait)/(priCustomerCount + stanCustomerCount), 4))
+    print("\tTotal UNSERVED Customers:  ", (priCustomerCount + stanCustomerCount-priCustomerServed - stanCustomerServed)/simulations, "\n")
 
 main()
 

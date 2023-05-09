@@ -95,7 +95,7 @@ workingHours = 8         # Tellers will not help customers after workingHours.
 
 def main():
 
-        simulations = 10000
+        simulations = 1000
         numCustomers = 160
         tellerWorkRate = 10
         
@@ -155,9 +155,7 @@ def trunc_gauss(mu, sigma, bottom, top):
         a = random.gauss(mu, sigma)
     return a
 
-# Print The List of Customers
-
-
+# Print the list of Customers
 def printCustomers():
     for i in range(priLine.qsize()):
         print(i, priLine[i].work)
@@ -213,6 +211,13 @@ def initTellers(priTellers, stanTellers, workRate):
         except:
             continue
         priTellerLine.task_done()
+    # Clear standard teller line.
+    while not stanTellerLine.empty():
+        try:
+            stanTellerLine.get(False)
+        except:
+            continue
+        stanTellerLine.task_done()
 
     for i in range(priTellers):
         priTellerLine.put(Teller(0, workRate, 'p'))
@@ -222,13 +227,15 @@ def initTellers(priTellers, stanTellers, workRate):
 
 def bankSimulation(numPriTellers, numStanTellers, tellerWorkRate, numCustomers, priLineLimit, simulations):
 
-    # Reset Simulation
+    # Reset Simulation Metrics
     global priCustomerCount;    priCustomerCount = 0
     global stanCustomerCount;   stanCustomerCount = 0
     global priCustomerServed;   priCustomerServed = 0
     global stanCustomerServed;  stanCustomerServed = 0
     global priCustomerWait;     priCustomerWait = 0
     global stanCustomerWait;    stanCustomerWait = 0
+    global priTellerIdleTime;   priTellerIdleTime = 0
+    global stanTellerIdleTime;  stanTellerIdleTime = 0
     global workingHours
 
     for i in range(simulations):
@@ -241,25 +248,39 @@ def bankSimulation(numPriTellers, numStanTellers, tellerWorkRate, numCustomers, 
             priTeller = priTellerLine.queue[0]
         stanTeller = stanTellerLine.queue[0]
 
-        # Priority Line
+        # Help Customers in Priority Line
         while not priLine.empty() and priTeller.time <= workingHours:
             priCustomer = priLine.queue[0]
             priTeller = serveCustomer(priTeller, priCustomer, priTellerLine)
 
-        # Standard Line
+        # Help Customers in Standard Line
         while not stanLine.empty() and stanTeller.time <= workingHours:
             stanCustomer = stanLine.queue[0]
             stanTeller = serveCustomer(stanTeller, stanCustomer, stanTellerLine)
 
-        # Unserved priority customer wait time.
+        # Calculate Metrics for Unserved Priority Customers
         while not priLine.empty():
             priCustomer = priLine.get()
             priCustomerWait += (workingHours - max(priCustomer.time, workingHours))
 
-        # Unserved standard customer wait time.
+        # Calculate Metrics for Unserved Standard Customers.
         while not stanLine.empty():
             stanCustomer = stanLine.get()
             stanCustomerWait += (workingHours - max(stanCustomer.time, workingHours))
+
+        # Calculate Metrics for Priority Tellers still waiting in line.
+        while not priTellerLine.empty():
+            priTeller = priTellerLine.get()
+
+            if priTeller.time < workingHours:
+                priTellerIdleTime += workingHours - priTeller.time
+
+        # Calculate Metrics for Standard Tellers still waiting in line.
+        while not stanTellerLine.empty():
+            stanTeller = stanTellerLine.get()
+
+            if stanTeller.time< workingHours:
+                stanTellerIdleTime += workingHours - stanTeller.time
 
 
 # Serve next customer. Return next teller.

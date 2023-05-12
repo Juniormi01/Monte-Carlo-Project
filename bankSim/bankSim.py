@@ -84,10 +84,11 @@ class Teller:
 
 
 # Queues
-stanLine = PriorityQueue()          # Stores all standard customers
 priLine = PriorityQueue()           # Stores all priority customers
-priTellerLine = PriorityQueue()     # Stores all tellers
-stanTellerLine = PriorityQueue()    # Stores all tellers
+stanLine = PriorityQueue()          # Stores all standard customers
+
+priTellerLine = PriorityQueue()     # Stores all priority tellers
+stanTellerLine = PriorityQueue()    # Stores all standardtellers
 
 # Global variables.
 priCustomerCount = 0            # Number of priority customers in all sims
@@ -111,18 +112,16 @@ workingHours = 8                # Tellers will not help customers after working 
 
 def main():
 
-    simulations = 100
+    simulations = 10000
     
     print("\nEach scenario is ran", simulations, "time(s). \nThe following metrics are the avearage of all simulations.\n")
 
 
-    # 8, 9, 10, 11, 12 Standard Tellers, 0 Priority Tellers
+    # 9, 10, 11 Standard Tellers--------------------------------
     numCustomers = 160
     tellerWorkRate = 10
-
     numPriTellers = 0
     priLineLimit = 0
-
     stanTellers = [9, 10, 11]
 
     for numStanTellers in stanTellers:
@@ -131,7 +130,7 @@ def main():
         printMetrics(simulations)
 
 
-    # 9 Standard Tellers, 1 Priority Teller
+    # 9 Standard Tellers, 1 Priority Teller-----------------------
     numPriTellers = 1
     numStanTellers = 9
     priLineLimit = 3.1
@@ -139,84 +138,6 @@ def main():
     print("9 Standard tellers, 1 priority teller:")
     bankSimulation(numPriTellers, numStanTellers, tellerWorkRate, numCustomers, priLineLimit, simulations)
     printMetrics(simulations)
-
-
-# Truncated gaussian function
-def trunc_gauss(mu, sigma, bottom, top):
-    a = random.gauss(mu, sigma)
-    while (bottom <= a <= top) == False:
-        a = random.gauss(mu, sigma)
-    return a
-
-# Print the list of Customers
-def printCustomers():
-    for i in range(priLine.qsize()):
-        print(i, priLine[i].work)
-    for i in range(stanLine.qsize()):
-        print(i, stanLine[i].work)
-
-# Initialize Customers
-def initCustomers(numCustomers, priLineLimit):
-
-    global priCustomerCount
-    global stanCustomerCount
-    global customerWorkAvg
-    global customerWorkStdDev
-    global customerWorkUpperLimit
-    global customerWorkLowerLimit
-
-    # Clear priority line.
-    while not priLine.empty():
-        try:
-            priLine.get(False)
-        except:
-            continue
-        priLine.task_done()
-
-    # Clear standard line.
-    while not stanLine.empty():
-        try:
-            stanLine.get(False)
-        except:
-            continue
-        stanLine.task_done()
-
-    # Add customer to priority or standard line.
-    for i in range(numCustomers):
-        work = trunc_gauss(customerWorkAvg, customerWorkStdDev, customerWorkLowerLimit, customerWorkUpperLimit)
-        time = random.uniform(0, workingHours)
-
-        if work <= priLineLimit:
-            priLine.put(Customer(time, work, 'p'))
-            priCustomerCount += 1
-        else:
-            stanLine.put(Customer(time, work, 's'))
-            stanCustomerCount += 1
-        #print(stanLine.queue[i].work)
-
-# Initialize Tellers
-def initTellers(priTellers, stanTellers, workRate):
-
-    # Clear priority teller line.
-    while not priTellerLine.empty():
-        try:
-            priTellerLine.get(False)
-        except:
-            continue
-        priTellerLine.task_done()
-
-    # Clear standard teller line.
-    while not stanTellerLine.empty():
-        try:
-            stanTellerLine.get(False)
-        except:
-            continue
-        stanTellerLine.task_done()
-
-    for i in range(priTellers):
-        priTellerLine.put(Teller(0, workRate, 'p'))
-    for i in range(stanTellers):
-        stanTellerLine.put(Teller(0, workRate, 's'))
 
 
 def bankSimulation(numPriTellers, numStanTellers, tellerWorkRate, numCustomers, priLineLimit, simulations):
@@ -239,6 +160,7 @@ def bankSimulation(numPriTellers, numStanTellers, tellerWorkRate, numCustomers, 
         initTellers(numPriTellers, numStanTellers, tellerWorkRate)
         initCustomers(numCustomers, priLineLimit)
 
+        # Check for Priority Tellers
         if numPriTellers > 0:
             priTeller = priTellerLine.queue[0]
         stanTeller = stanTellerLine.queue[0]
@@ -287,7 +209,8 @@ def serveCustomer(teller, customer, line):
     global stanTellerIdleTime
     global priTellerIdleTime
 
-    # Teller is waiting for a customer.
+    # Teller is waiting for a customer. 
+    # Advance the time of teller to equal time of next customer.
     if (teller.time < customer.time):
         if teller.time < customer.time and teller.type == 'p':
             priTellerIdleTime += customer.time - teller.time
@@ -295,26 +218,91 @@ def serveCustomer(teller, customer, line):
             stanTellerIdleTime += customer.time - teller.time
         teller.time = customer.time
 
-    # Past closing.
+    # Past closing. Exit without helping customer.
     if (teller.time > workingHours):
         return teller
 
-    # Priority customer
+    # Remove Priority Customer from queue and update metrics
     if (customer.type == 'p'):
         priLine.get()
         priCustomerServed += 1
         priCustomerWait += (teller.time-customer.time)
-    else:  # Standard customer
+    else:  # Remove Standard customer from queue and update metrics
         stanLine.get()
         stanCustomerServed += 1
         stanCustomerWait += (teller.time - customer.time)
 
-    # Remove and replace teller at back of teller line.
+    # Remove teller from line, update teller's time, add teller back to line.
     line.get()
     teller.time += (customer.work / teller.workRate)
     line.put(teller)
 
     return copy.copy(line.queue[0])
+
+
+# Initialize Customers
+def initCustomers(numCustomers, priLineLimit):
+
+    global priCustomerCount
+    global stanCustomerCount
+    global customerWorkAvg
+    global customerWorkStdDev
+    global customerWorkUpperLimit
+    global customerWorkLowerLimit
+
+    # Clear priority line.
+    while not priLine.empty():
+        try:
+            priLine.get(False)
+        except:
+            continue
+        priLine.task_done()
+
+    # Clear standard line.
+    while not stanLine.empty():
+        try:
+            stanLine.get(False)
+        except:
+            continue
+        stanLine.task_done()
+
+    # Add customer to priority or standard line.
+    for i in range(numCustomers):
+        work = trunc_gauss(customerWorkAvg, customerWorkStdDev, customerWorkLowerLimit, customerWorkUpperLimit)
+        time = random.uniform(0, workingHours)
+
+        if work <= priLineLimit:
+            priLine.put(Customer(time, work, 'p'))
+            priCustomerCount += 1
+        else:
+            stanLine.put(Customer(time, work, 's'))
+            stanCustomerCount += 1
+
+
+# Initialize Tellers
+def initTellers(priTellers, stanTellers, workRate):
+
+    # Clear priority teller line.
+    while not priTellerLine.empty():
+        try:
+            priTellerLine.get(False)
+        except:
+            continue
+        priTellerLine.task_done()
+
+    # Clear standard teller line.
+    while not stanTellerLine.empty():
+        try:
+            stanTellerLine.get(False)
+        except:
+            continue
+        stanTellerLine.task_done()
+
+    # Add teller to the appropriate line
+    for i in range(priTellers):
+        priTellerLine.put(Teller(0, workRate, 'p'))
+    for i in range(stanTellers):
+        stanTellerLine.put(Teller(0, workRate, 's'))
 
 
 def printMetrics(simulations):
@@ -337,6 +325,23 @@ def printMetrics(simulations):
         print("\tTotal Teller Idle Time:    ", round((priTellerIdleTime+stanTellerIdleTime)/simulations, 4))
 
     print()
+
+
+# Truncated gaussian function
+def trunc_gauss(mu, sigma, bottom, top):
+    a = random.gauss(mu, sigma)
+    while (bottom <= a <= top) == False:
+        a = random.gauss(mu, sigma)
+    return a
+
+
+# Print the list of Customers
+def printCustomers():
+    for i in range(priLine.qsize()):
+        print(i, priLine[i].work)
+    for i in range(stanLine.qsize()):
+        print(i, stanLine[i].work)
+
 
 main()
 

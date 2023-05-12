@@ -3,10 +3,26 @@
 # CSCI 154
 
 # The following program simulates a bank queue.
+   
+# Logic:
+#
+#   While (there is a Teller in the Teller Line) and (there is a Customer in the Customer Line):
+# 	    Pop Teller from the Teller Line.
+# 	    Pop Customer from the Customer Line.
+#       Adjust Teller’s time to when the Teller will next be available.
+#       Add Teller back into Teller Line.
+#
+# 	If at end of day, Customers are in Customer Line:
+# 		Update the necessary metrics
+#
+# 	If at end of day, Tellers are in Teller Line:
+# 		Update the necessary metrics
+
 # Assumptions
 #   1. After closing, tellers will finish helping customers that are in the process of being helped.
 #   2. After closing, tellers will not help customers still standing in line.
-#   3. If a customer is in line after closing, the difference between the customer's wait time and the time the bank closed will be added to the total wait time.
+#   3. Priority customers are ONLY helped by priority tellers. 
+#   4. Standard customers are ONLY helped by standard tellers.
 
 from queue import PriorityQueue
 import heapq
@@ -74,38 +90,50 @@ priTellerLine = PriorityQueue()     # Stores all tellers
 stanTellerLine = PriorityQueue()    # Stores all tellers
 
 # Global variables.
-priCustomerCount = 0
-priCustomerServed = 0
-priCustomerWait = 0
+priCustomerCount = 0            # Number of priority customers in all sims
+priCustomerServed = 0           # Number of prioirty customers served in all sims
+priCustomerWait = 0             # Time all priority customers spent waiting in line in all sims
 
-stanCustomerServed = 0
-stanCustomerWait = 0
-stanCustomerCount = 0
+stanCustomerCount = 0           # Number of standard customers in all sims
+stanCustomerServed = 0          # Number of standard customers served in all sims
+stanCustomerWait = 0            # Time all standard customers spent wainting in line in all sims
 
-stanTellerIdleTime = 0
-priTellerIdleTime = 0
+stanTellerIdleTime = 0          # Time all standard tellers spent not helping customers in all sims
+priTellerIdleTime = 0           # Time all priority tellers spent not helping customers in all sims
 
-customerWorkAvg = 5
-customerWorkStdDev = 2.5
-customerWorkUpperLimit = 15
-customerWorkLowerLimit = 2
+customerWorkAvg = 5             # Mean of customer work gaussian distribution
+customerWorkStdDev = 2.5        # Std deviation of customer work gaussian distribution
+customerWorkUpperLimit = 15     # Customers will not request more than 15 units of work
+customerWorkLowerLimit = 2      # Customers will not request less than 2 units of work
 
-workingHours = 8         # Tellers will not help customers after workingHours.
+workingHours = 8                # Tellers will not help customers after working hours.
 
 
 def main():
 
-        simulations = 1000
+        simulations = 10000
         numCustomers = 160
         tellerWorkRate = 10
         
+        
+
         print("\nEach scenario is ran", simulations, "time(s). \nThe following metrics are the avearage of all simulations.\n")
+
+         # 1 line, 8 tellers.
+        numPriTellers = 0
+        numStanTellers = 8
+        priLineLimit = 0
+
+        print("8 tellers:")
+        bankSimulation(numPriTellers, numStanTellers, tellerWorkRate, numCustomers, priLineLimit, simulations)
+        printMetrics(simulations)
 
         # 1 line, 9 tellers.
         numPriTellers = 0
         numStanTellers = 9
         priLineLimit = 0
-        print("1 line, 9 tellers.")
+
+        print("9 tellers:")
         bankSimulation(numPriTellers, numStanTellers, tellerWorkRate, numCustomers, priLineLimit, simulations)
         printMetrics(simulations)
 
@@ -114,7 +142,7 @@ def main():
         numStanTellers = 10
         priLineLimit = 0
 
-        print("1 line, 10 tellers.")
+        print("10 tellers:")
         bankSimulation(numPriTellers, numStanTellers, tellerWorkRate, numCustomers, priLineLimit, simulations)
         printMetrics(simulations)
 
@@ -123,26 +151,26 @@ def main():
         numStanTellers = 11
         priLineLimit = 0
 
-        print("1 line, 11 tellers.")
+        print("11 tellers:")
+        bankSimulation(numPriTellers, numStanTellers, tellerWorkRate, numCustomers, priLineLimit, simulations)
+        printMetrics(simulations)
+
+        # 1 line, 11 tellers.-------------------------------------------
+        numPriTellers = 0
+        numStanTellers = 12
+        priLineLimit = 0
+
+        print("12 tellers:")
         bankSimulation(numPriTellers, numStanTellers, tellerWorkRate, numCustomers, priLineLimit, simulations)
         printMetrics(simulations)
 
 
-        #2 lines, 1 priority teller, 9 standard tellers.
+        #2 lines, 1 priority teller, 9 standard tellers.---------------------------
         numPriTellers = 1
         numStanTellers = 9
         priLineLimit = 3.1
 
-        print("2 lines, 1 priority teller, 9 standard tellers.")
-        bankSimulation(numPriTellers, numStanTellers, tellerWorkRate, numCustomers, priLineLimit, simulations)
-        printMetrics(simulations)
-
-        # 2 lines, 2 priority teller, 8 standard tellers.
-        numPriTellers = 2
-        numStanTellers = 8
-        priLineLimit = 3.1
-
-        print("2 lines, 2 priority tellers, 8 standard tellers")
+        print("9 Standard tellers, 1 priority teller:")
         bankSimulation(numPriTellers, numStanTellers, tellerWorkRate, numCustomers, priLineLimit, simulations)
         printMetrics(simulations)
 
@@ -238,6 +266,7 @@ def bankSimulation(numPriTellers, numStanTellers, tellerWorkRate, numCustomers, 
     global stanTellerIdleTime;  stanTellerIdleTime = 0
     global workingHours
 
+
     for i in range(simulations):
 
         # Initialize Tellers and Customers
@@ -323,22 +352,25 @@ def serveCustomer(teller, customer, line):
 
 
 def printMetrics(simulations):
-    print("\tStandard Customers Count:  ", stanCustomerCount/simulations)
-    print("\tStandard Customers Served: ", stanCustomerServed/simulations)
-    print("\tStandard Customers Wait:   ", round(stanCustomerWait/stanCustomerCount, 4), "\n")
+    print("\tStandard Customers Count:    ", stanCustomerCount/simulations)
+    print("\tStandard Customers Unserved: ", (stanCustomerCount - stanCustomerServed)/simulations)
+    print("\tStandard Customers Wait:     ", round(stanCustomerWait/stanCustomerCount, 4), "\n")
 
     if priCustomerCount > 0:
-        print("\tPriority Customers Count:  ", priCustomerCount/simulations)
-        print("\tPriority Customers Served: ", priCustomerServed/simulations)
-        print("\tPriority Customers Wait:   ", round(priCustomerWait/priCustomerCount,4), "\n")
+        print("\tPriority Customers Count:    ", priCustomerCount/simulations)
+        print("\tPriority Customers Unserved: ", (priCustomerCount - priCustomerServed)/simulations)
+        print("\tPriority Customers Wait:     ", round(priCustomerWait/priCustomerCount,4), "\n")
 
-    print("\tTotal Customer Wait:       ", round((priCustomerWait + stanCustomerWait)/(priCustomerCount + stanCustomerCount), 4))
-    print("\tTotal UNSERVED Customers:  ", (priCustomerCount + stanCustomerCount-priCustomerServed - stanCustomerServed)/simulations, "\n")
+        print("\tTotal UNSERVED Customers:  ", (priCustomerCount + stanCustomerCount-priCustomerServed - stanCustomerServed)/simulations, "\n")
+        print("\tTotal Customer Wait:       ", round((priCustomerWait + stanCustomerWait)/(priCustomerCount + stanCustomerCount), 4))
 
     print("\tStandard Teller Idle Time: ", round(stanTellerIdleTime/simulations, 4))
-    print("\tPriority Teller Idle Time: ", round(priTellerIdleTime/simulations, 4))
-    print("\tTotal Teller Idle Time:    ", round((priTellerIdleTime+stanTellerIdleTime)/simulations, 4), "\n")
 
+    if priCustomerCount > 0:
+        print("\tPriority Teller Idle Time: ", round(priTellerIdleTime/simulations, 4))
+        print("\tTotal Teller Idle Time:    ", round((priTellerIdleTime+stanTellerIdleTime)/simulations, 4))
+
+    print('\n')
 
 main()
 

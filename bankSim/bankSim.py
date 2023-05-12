@@ -111,69 +111,34 @@ workingHours = 8                # Tellers will not help customers after working 
 
 def main():
 
-        simulations = 10000
-        numCustomers = 160
-        tellerWorkRate = 10
-        
-        
+    simulations = 100
+    
+    print("\nEach scenario is ran", simulations, "time(s). \nThe following metrics are the avearage of all simulations.\n")
 
-        print("\nEach scenario is ran", simulations, "time(s). \nThe following metrics are the avearage of all simulations.\n")
 
-         # 1 line, 8 tellers.
-        numPriTellers = 0
-        numStanTellers = 8
-        priLineLimit = 0
+    # 8, 9, 10, 11, 12 Standard Tellers, 0 Priority Tellers
+    numCustomers = 160
+    tellerWorkRate = 10
 
-        print("8 tellers:")
-        bankSimulation(numPriTellers, numStanTellers, tellerWorkRate, numCustomers, priLineLimit, simulations)
-        printMetrics(simulations)
+    numPriTellers = 0
+    priLineLimit = 0
 
-        # 1 line, 9 tellers.
-        numPriTellers = 0
-        numStanTellers = 9
-        priLineLimit = 0
+    stanTellers = [9, 10, 11]
 
-        print("9 tellers:")
-        bankSimulation(numPriTellers, numStanTellers, tellerWorkRate, numCustomers, priLineLimit, simulations)
-        printMetrics(simulations)
-
-        # 1 line, 10 tellers.---------------------------------
-        numPriTellers = 0
-        numStanTellers = 10
-        priLineLimit = 0
-
-        print("10 tellers:")
-        bankSimulation(numPriTellers, numStanTellers, tellerWorkRate, numCustomers, priLineLimit, simulations)
-        printMetrics(simulations)
-
-        # 1 line, 11 tellers.-------------------------------------------
-        numPriTellers = 0
-        numStanTellers = 11
-        priLineLimit = 0
-
-        print("11 tellers:")
-        bankSimulation(numPriTellers, numStanTellers, tellerWorkRate, numCustomers, priLineLimit, simulations)
-        printMetrics(simulations)
-
-        # 1 line, 11 tellers.-------------------------------------------
-        numPriTellers = 0
-        numStanTellers = 12
-        priLineLimit = 0
-
-        print("12 tellers:")
+    for numStanTellers in stanTellers:
+        print(numStanTellers, "tellers:")
         bankSimulation(numPriTellers, numStanTellers, tellerWorkRate, numCustomers, priLineLimit, simulations)
         printMetrics(simulations)
 
 
-        #2 lines, 1 priority teller, 9 standard tellers.---------------------------
-        numPriTellers = 1
-        numStanTellers = 9
-        priLineLimit = 3.1
+    # 9 Standard Tellers, 1 Priority Teller
+    numPriTellers = 1
+    numStanTellers = 9
+    priLineLimit = 3.1
 
-        print("9 Standard tellers, 1 priority teller:")
-        bankSimulation(numPriTellers, numStanTellers, tellerWorkRate, numCustomers, priLineLimit, simulations)
-        printMetrics(simulations)
-
+    print("9 Standard tellers, 1 priority teller:")
+    bankSimulation(numPriTellers, numStanTellers, tellerWorkRate, numCustomers, priLineLimit, simulations)
+    printMetrics(simulations)
 
 
 # Truncated gaussian function
@@ -239,6 +204,7 @@ def initTellers(priTellers, stanTellers, workRate):
         except:
             continue
         priTellerLine.task_done()
+
     # Clear standard teller line.
     while not stanTellerLine.empty():
         try:
@@ -361,8 +327,8 @@ def printMetrics(simulations):
         print("\tPriority Customers Unserved: ", (priCustomerCount - priCustomerServed)/simulations)
         print("\tPriority Customers Wait:     ", round(priCustomerWait/priCustomerCount,4), "\n")
 
-        print("\tTotal UNSERVED Customers:  ", (priCustomerCount + stanCustomerCount-priCustomerServed - stanCustomerServed)/simulations, "\n")
-        print("\tTotal Customer Wait:       ", round((priCustomerWait + stanCustomerWait)/(priCustomerCount + stanCustomerCount), 4))
+        print("\tTotal UNSERVED Customers:  ", (priCustomerCount + stanCustomerCount-priCustomerServed - stanCustomerServed)/simulations)
+        print("\tTotal Customer Wait:       ", round((priCustomerWait + stanCustomerWait)/(priCustomerCount + stanCustomerCount), 4), '\n')
 
     print("\tStandard Teller Idle Time: ", round(stanTellerIdleTime/simulations, 4))
 
@@ -370,7 +336,7 @@ def printMetrics(simulations):
         print("\tPriority Teller Idle Time: ", round(priTellerIdleTime/simulations, 4))
         print("\tTotal Teller Idle Time:    ", round((priTellerIdleTime+stanTellerIdleTime)/simulations, 4))
 
-    print('\n')
+    print()
 
 main()
 
